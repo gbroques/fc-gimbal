@@ -46,7 +46,6 @@ class Gimbal:
         """
         Called on document recompute.
         """
-        base = Vector(0, 0, 0)
         x = self.gimbal.Links[0]
         y = self.gimbal.Links[1]
         z = self.gimbal.Links[2]
@@ -61,18 +60,19 @@ class Gimbal:
         z_initial = Rotation(Vector(0, 0, 1), 0)
 
         x_prime = x_rotation.multiply(x_initial)
-        x.Placement = Placement(base, x_prime)
-
         y_prime = x_rotation.multiply(y_rotation.multiply(y_initial))
-        y.Placement = Placement(base, y_prime)
-
         z_prime = x_rotation.multiply(y_rotation).multiply(
             z_rotation.multiply(z_initial))
-        z.Placement = Placement(base, z_prime)
 
+        base = Vector(0, 0, 0)
         if obj.LinkedObject is not None:
             p = obj.LinkedObject.Placement
-            obj.LinkedObject.Placement = Placement(p.Base, z_prime)
+            base = Vector(p.Base.x, p.Base.y, p.Base.z)
+            obj.LinkedObject.Placement = Placement(base, z_prime)
+
+        x.Placement = Placement(base, x_prime)
+        y.Placement = Placement(base, y_prime)
+        z.Placement = Placement(base, z_prime)
 
 
 def create_gimbal(obj_name: str, document: Document) -> object:
