@@ -39,6 +39,8 @@ class Gimbal:
                         'Base', 'Y').Y = 0
         obj.addProperty('App::PropertyAngle', 'Z',
                         'Base', 'Z').Z = 0
+        obj.addProperty('App::PropertyLink', 'LinkedObject',
+                        'Base', 'Linked object').LinkedObject = None
 
     def execute(self, obj):
         """
@@ -67,6 +69,10 @@ class Gimbal:
         z_prime = x_rotation.multiply(y_rotation).multiply(
             z_rotation.multiply(z_initial))
         z.Placement = Placement(base, z_prime)
+
+        if obj.LinkedObject is not None:
+            p = obj.LinkedObject.Placement
+            obj.LinkedObject.Placement = Placement(p.Base, z_prime)
 
 
 def create_gimbal(obj_name: str, document: Document) -> object:
