@@ -68,11 +68,28 @@ class Gimbal:
         if obj.LinkedObject is not None:
             p = obj.LinkedObject.Placement
             base = Vector(p.Base.x, p.Base.y, p.Base.z)
-            obj.LinkedObject.Placement = Placement(base, z_prime)
+            set_placement_if_different(
+                obj.LinkedObject, Placement(base, z_prime))
 
-        x.Placement = Placement(base, x_prime)
-        y.Placement = Placement(base, y_prime)
-        z.Placement = Placement(base, z_prime)
+        set_placement_if_different(x, Placement(base, x_prime))
+        set_placement_if_different(y, Placement(base, y_prime))
+        set_placement_if_different(z, Placement(base, z_prime))
+
+
+def set_placement_if_different(obj, next_placement):
+    if not are_placements_equal(obj.Placement, next_placement):
+        obj.Placement = next_placement
+
+
+def are_placements_equal(a, b):
+    precision = 7
+    return (
+        round(a.Base.x, ndigits=precision) == round(b.Base.x, ndigits=precision) and
+        round(a.Base.y, ndigits=precision) == round(b.Base.y, ndigits=precision) and
+        round(a.Base.z, ndigits=precision) == round(b.Base.z, ndigits=precision) and
+        a.Rotation.Angle == b.Rotation.Angle and
+        a.Rotation.Axis == b.Rotation.Axis
+    )
 
 
 def create_gimbal(obj_name: str, document: Document) -> object:
