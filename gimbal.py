@@ -1,6 +1,15 @@
+from enum import Enum, unique
+from typing import Tuple
+
 import FreeCAD as App
-import Part
 from FreeCAD import Document, Placement, Rotation, Vector
+
+
+@unique
+class Color(Enum):
+    RED = (1.0, 0.0, 0.0, 1.0)
+    GREEN = (0.0, 1.0, 0.0, 1.0)
+    BLUE = (0.0, 0.0, 1.0, 1.0)
 
 
 class Gimbal:
@@ -31,7 +40,6 @@ class Gimbal:
         obj.addProperty('App::PropertyAngle', 'Z',
                         'Base', 'Z').Z = 0
 
-
     def execute(self, obj):
         """
         Called on document recompute.
@@ -40,21 +48,26 @@ class Gimbal:
         x = self.gimbal.Links[0]
         y = self.gimbal.Links[1]
         z = self.gimbal.Links[2]
-        
-        z_rotation = Rotation(Vector(0, 0, 1), obj.Z)
-        y_rotation = Rotation(Vector(0, 1, 0), obj.Y)
-        x_rotation = Rotation(Vector(1, 0, 0), obj.X)
 
+        x_rotation = Rotation(Vector(1, 0, 0), obj.X)
+        y_rotation = Rotation(Vector(0, 1, 0), obj.Y)
+        z_rotation = Rotation(Vector(0, 0, 1), obj.Z)
+
+        # TODO: These initial rotations are duplicated in create_gimbal.
         x_initial = Rotation(Vector(0, 1, 0), 90)
         y_initial = Rotation(Vector(1, 0, 0), 90)
         z_initial = Rotation(Vector(0, 0, 1), 0)
 
-        z_prime = z_rotation.multiply(y_rotation).multiply(x_rotation).multiply(z_initial)
-        x_r = x_rotation.multiply(x_initial)
-        y_r = y_rotation.multiply(y_initial).multiply(x_rotation)
-        y.Placement = Placement(base, y_r)
+        x_prime = x_rotation.multiply(x_initial)
+        x.Placement = Placement(base, x_prime)
+
+        y_prime = x_rotation.multiply(y_rotation.multiply(y_initial))
+        y.Placement = Placement(base, y_prime)
+
+        z_prime = x_rotation.multiply(y_rotation).multiply(
+            z_rotation.multiply(z_initial))
         z.Placement = Placement(base, z_prime)
-        x.Placement = Placement(base, x_r)
+
 
 def create_gimbal(obj_name: str, document: Document) -> object:
     """
@@ -66,32 +79,38 @@ def create_gimbal(obj_name: str, document: Document) -> object:
     thickness = 1
     radius2 = thickness / 2
 
-    x = document.addObject('Part::Torus', 'X')
-    x.Radius1 = size
-    x.Radius2 = radius2
-    x.ViewObject.ShapeColor = (1.0, 0.0, 0.0, 1.0)
-    x.ViewObject.ShowInTree = False
-    x.Placement = Placement(Vector(0, 0, 0), Vector(0, 1, 0), 90)
+    toruses = [
+        {
+            'name': 'X',
+            'rotation': Rotation(Vector(0, 1, 0), 90),
+            'color': Color.RED.value
+        },
+        {
+            'name': 'Y',
+            'rotation': Rotation(Vector(1, 0, 0), 90),
+            'color': Color.GREEN.value
+        },
+        {
+            'name': 'Z',
+            'rotation': Rotation(Vector(0, 0, 1), 0),
+            'color': Color.BLUE.value
+        }
+    ]
+    links = []
+    for i, torus in enumerate(toruses):
+        torus = create_pointed_torus(document,
+                                     torus['name'],
+                                     size - (thickness * i),
+                                     radius2,
+                                     torus['color'],
+                                     torus['rotation'])
+        links.append(torus)
 
-    y = document.addObject('Part::Torus', 'Y')
-    y.Radius1 = size - thickness
-    y.Radius2 = radius2
-    y.ViewObject.ShapeColor = (0.0, 1.0, 0.0, 1.0)
-    y.ViewObject.ShowInTree = False
-    y.Placement = Placement(Vector(0, 0, 0), Vector(1, 0, 0), 90)
-
-    z = document.addObject('Part::Torus', 'Z')
-    z.Radius1 = size - thickness * 2
-    z.Radius2 = radius2
-    z.ViewObject.ShapeColor = (0.0, 0.0, 1.0, 1.0)
-    z.ViewObject.ShowInTree = False
-    z.Placement = Placement(Vector(0, 0, 0), Vector(0, 0, 1), 0)
-
-    gimbal.Links = [x, y, z]
+    gimbal.Links = links
 
     gimbal.ViewObject.ShowInTree = False
 
-    for obj in [x, y, z]:
+    for obj in links:
         obj.ViewObject.Visibility = True
 
     obj = document.addObject('Part::FeaturePython', obj_name)
@@ -101,6 +120,35 @@ def create_gimbal(obj_name: str, document: Document) -> object:
     return gimbal
 
 
+def create_pointed_torus(document: Document,
+                         name: str,
+                         radius1: float,
+                         radius2: float,
+                         shape_color: Tuple[float, float, float, float],
+                         rotation: Rotation) -> object:
+    torus = document.addObject('Part::Torus', name)
+    torus.Radius1 = radius1
+    torus.Radius2 = radius2
+    torus.ViewObject.ShapeColor = shape_color
+    torus.ViewObject.ShowInTree = False
+    torus.ViewObject.Visibility = True
+    torus.Placement = Placement(Vector(0, 0, 0), rotation)
+
+    # TODO: Compound or fusion doesn't seem to work.
+    # arrow = document.addObject('Part::Cone', name + 'Arrow')
+    # arrow.Radius1 = 0
+    # arrow.Radius2 = 0.5
+    # height = 2
+    # arrow.Height = height
+    # z = -radius1 - height
+    # arrow.Placement = Placement(Vector(0, 0, z), Vector(0, 0, 1), 0)
+    # arrow.ViewObject.ShapeColor = shape_color
+    # arrow.ViewObject.ShowInTree = False
+    # arrow.ViewObject.Visibility = False
+
+    return torus
+
+
 document = App.ActiveDocument
 if document is None:
     document = App.newDocument('Gimbal')
@@ -108,4 +156,3 @@ if document is None:
 
 gimbal = create_gimbal('Gimbal', document)
 document.recompute()
-
