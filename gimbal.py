@@ -74,7 +74,7 @@ class Gimbal:
         z_initial = Rotation(Vector(0, 0, 1), 0)
 
         x_prime = x_rotation.multiply(x_initial)
-        y_prime = z_rotation.multiply(y_rotation).multiply(y_initial)
+        y_prime = y_rotation.multiply(x_rotation).multiply(y_initial)
         z_prime = z_rotation.multiply(y_rotation).multiply(
             x_rotation).multiply(z_initial)
 

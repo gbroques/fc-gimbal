@@ -2,24 +2,22 @@
 
 [Gimbal](https://en.wikipedia.org/wiki/Gimbal) for visualizing [Euler (or Tait-Bryan) angles](https://en.wikipedia.org/wiki/Euler_angles) in FreeCAD.
 
-A gimbal is a system of rotatable rings.
+A gimbal is a set of three hierarchical rotatable rings representing three possible axes of rotation, X, Y, or Z.
 
-Gimbal rings are nested inside each other and parented from the inside-out.
-
-The innermost ring rotates independently, while also being affected by the rings on the outside of it.
-
-Each ring can only rotate on one axis.
-
-The gimbal hierarchy is as follows:
-* the outermost ring is the parent
-* the middle ring is the child
-* and the innermost ring is the grandchild.
-
-The parent rotates the child, but the child does not rotate the parent.
+Different hierarchies of the rings, or rotation ordes can exist.
 
 In FreeCAD, this rotation order is x-y'-z" for *intrinsic* rotations, and z-y-x for *extrinsic* rotations (see [Tait-Bryan angle conventions](https://en.wikipedia.org/wiki/Euler_angles#Conventions)).
 
-![Gimbal](./gimbal.png)
+The gimbal hierarchy is as follows:
+* the outermost ring represents the X rotation axis, in red.
+* the middle ring represents the Y rotation axis, in green.
+* and the innermost represents the Z rotation axis, in blue.
+
+Each ring is affected by the rings on the outside of it.
+
+Thus, the X ring rotates independenty, the Y ring is affected by X, and the Z ring is affected by both X and Y rings.
+
+![Gimbal](./gimbal-demo.gif)
 
 ## Additional Information
 * [The Rotation Problem](https://vimeo.com/2649637)
